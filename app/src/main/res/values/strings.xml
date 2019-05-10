@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">StockTrainingPractice</string>
+    <string name="app_title">Stock\nTrading\nPracice</string>
+    <string name="create_new_account">Create New Account</string>
+    <string name="load_account">Load Account</string>
+    <string name="account_name">AccountName :</string>
+    <string name="starting_cash_amount">Starting Cash Amount :</string>
+    <string name="transaction_fee">Transaction Fee :</string>
+    <string name="day_trade_restriction">Day Trade Restriction :</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="submit">Submit</string>
+    <string name="select_account_to_load">Select Account To Load</string>
+    <string name="placeholder">Placeholder</string>
+    <string name="cash_amount">Cash Amount</string>
+    <string name="equity_amount">Equity Amount</string>
+</resources>
