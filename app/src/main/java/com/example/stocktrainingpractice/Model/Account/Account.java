@@ -1,8 +1,5 @@
 package com.example.stocktrainingpractice.Model.Account;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +11,7 @@ public class Account implements Serializable {
     private Double transactionFee;
     private Boolean dayTradeRestriction;
     private List<Stock> stockList;
+    private List<History> historyList;
 
     public Account(String accName, Double cashAmt, Double transactionFee, Boolean dayTradeRestriction) {
         this.accName = accName;
@@ -70,5 +68,21 @@ public class Account implements Serializable {
 
     public void setStockList(List<Stock> stockList) {
         this.stockList = stockList;
+    }
+
+    public void addStock(Stock stock){
+        this.stockList.add(stock);
+    }
+
+    public List<History> getHistoryList() {
+        return historyList;
+    }
+
+    public void setHistoryList(List<History> historyList) {
+        this.historyList = historyList;
+    }
+
+    public void addHistory(History history){
+        this.historyList.add(history);
     }
 }

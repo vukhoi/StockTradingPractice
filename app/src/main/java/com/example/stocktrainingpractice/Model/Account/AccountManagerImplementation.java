@@ -1,5 +1,7 @@
 package com.example.stocktrainingpractice.Model.Account;
 
+import android.util.Log;
+
 import com.example.stocktrainingpractice.Util;
 
 import java.io.File;
@@ -7,7 +9,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 
@@ -58,6 +62,10 @@ public class AccountManagerImplementation implements AccountManager {
         if(stockList != null){
             acc.setStockList(stockList);
         }
+
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        acc.addHistory(new History(cashAmt, equityAmt, simpleDateFormat.format(calendar.getTime())));
         writeAccToFile(acc);
     }
 
@@ -85,7 +93,10 @@ public class AccountManagerImplementation implements AccountManager {
         File folder = new File(Util.FILE_DIR);
         File[] listOfFiles = folder.listFiles();
         for (File file: listOfFiles){
-            accountList.add(readAccFromFile(file));
+            if(getFileExtension(file).equals(".acc")) {
+                accountList.add(readAccFromFile(file));
+                Log.d("readAcc", file.getPath());
+            }
         }
         return accountList;
     }
@@ -132,7 +143,7 @@ public class AccountManagerImplementation implements AccountManager {
 
     private void writeAccToFile(Account account){
         try {
-            FileOutputStream fileOut = new FileOutputStream(Util.FILE_DIR + account.getAccName());
+            FileOutputStream fileOut = new FileOutputStream(Util.FILE_DIR + account.getAccName() + ".acc");
             ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
             objectOut.writeObject(account);
             fileOut.close();
@@ -141,5 +152,19 @@ public class AccountManagerImplementation implements AccountManager {
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    private static String getFileExtension(File file) {
+        String extension = "";
+        try {
+            if (file != null && file.exists()) {
+                String name = file.getName();
+                extension = name.substring(name.lastIndexOf("."));
+            }
+        } catch (Exception e) {
+            extension = "";
+        }
+        return extension;
     }
 }

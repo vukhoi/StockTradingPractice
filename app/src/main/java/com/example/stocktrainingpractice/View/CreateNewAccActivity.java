@@ -48,7 +48,7 @@ public class CreateNewAccActivity extends AppCompatActivity {
     @OnClick(R.id.btn_submit)
     void processUserInput() {
         Account newAccount = createNewAccount();
-        if (newAccount == null) {
+        if (newAccount != null) {
             startPortfolioActivity(newAccount);
         }
     }
@@ -73,7 +73,8 @@ public class CreateNewAccActivity extends AppCompatActivity {
         } else if (transactionFee < 0 || transactionFee > 20) {
             displayErrorMessage(TRANSACTION_FEE_ERROR_MSG);
             return null;
-        } else {
+        }
+        else {
             AccountManager accountManager = AccountManagerImplementation.getInstance();
             Account newAccount = new Account(accName,startingCashAmt, transactionFee, dayTradeRestriction);
             accountManager.createNew(newAccount);

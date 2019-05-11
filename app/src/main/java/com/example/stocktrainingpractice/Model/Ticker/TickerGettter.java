@@ -5,7 +5,6 @@ import android.arch.lifecycle.LifecycleOwner;
 import android.arch.lifecycle.Observer;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -15,13 +14,12 @@ import android.util.Log;
 
 import com.example.stocktrainingpractice.Util;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -29,65 +27,76 @@ import java.util.List;
 
 
 public class TickerGettter {
-    private String[] exchangeList = {"NASDAQ, AMEX, NYSE"};
+    private String[] exchangeList = {"NASDAQ", "AMEX", "NYSE"};
     private final String tickerListFileName = Util.FILE_DIR + "ticker_list";
+    static List<String> finishedList = new ArrayList<>();
+    private List<Long> idList = new ArrayList<>();
+    static StringBuilder tickerStringBuilder = new StringBuilder();
+    static DownloadManager downloadManager;
     Context context;
+
 
     public TickerGettter(Context context) {
         this.context = context;
+        downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
     }
 
 
-    public List<String> getTickers() {
+    public void downloadTickers() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext());
         Calendar calendarInstance = Calendar.getInstance();
-        String today = calendarInstance.get(Calendar.DAY_OF_MONTH) + " " + calendarInstance.get(Calendar.MONTH);
-        //if(!sharedPreferences.getString(Util.LAST_TICKER_DOWNLOAD_DATE, "").equals(today)){
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(Util.LAST_TICKER_DOWNLOAD_DATE, today);
-        editor.apply();
-        Log.d("sPTest", sharedPreferences.getString(Util.LAST_TICKER_DOWNLOAD_DATE, " no date"));
-        downloadAllTickerLists();
-        //}
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String today = simpleDateFormat.format(calendarInstance.getTime());
+        Log.d("DOWNLOADTICKERS", today);
+//        if (!sharedPreferences.getString(Util.LAST_TICKER_DOWNLOAD_DATE, "").equals(today)) {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(Util.LAST_TICKER_DOWNLOAD_DATE, today);
+            editor.apply();
+            downloadAllTickerLists();
+//        }
+    }
+
+    public List<String> getTickers(){
         return readTickerFile();
     }
 
 
     private void downloadFile(String exchange, String url) {
+        Log.d("DOWNLOAD", exchange);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setDescription(exchange);
         request.setTitle(exchange);
-
-        request.setDestinationUri(Uri.parse(Util.FILE_DIR + exchange + ".csv"));
-        Log.d("Uri Test", String.valueOf(Uri.parse(Util.FILE_DIR + exchange + ".csv")));
-
-        DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-        downloadManager.enqueue(request);
+//        request.setDestinationInExternalPublicDir(Util.FILE_DIR, exchange+".csv");
+        idList.add(downloadManager.enqueue(request));
     }
 
 
     private void downloadAllTickerLists() {
-        BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Log.d("counterTest", String.valueOf(Util.TICKERLIST_DOWNLOAD_COUNT.getValue()));
-                Util.TICKERLIST_DOWNLOAD_COUNT.postValue(Util.TICKERLIST_DOWNLOAD_COUNT.getValue() + 1);
-            }
-        };
-
-        context.getApplicationContext()
-                .registerReceiver(broadcastReceiver,
-                        new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-
+        TickerBroadcastReceiver tickerBroadcastReceiver = new TickerBroadcastReceiver();
+        try {
+            context.getApplicationContext()
+                    .registerReceiver(tickerBroadcastReceiver,
+                            new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        }
+        catch(IllegalArgumentException e){
+            e.printStackTrace();
+        }
 
         Util.TICKERLIST_DOWNLOAD_COUNT.observe((LifecycleOwner) context, new Observer<Integer>() {
             @Override
             public void onChanged(@Nullable Integer integer) {
-                if (integer == 2) {
-                    Log.d("observeCounterTest", String.valueOf(integer));
+                Log.d(this.getClass().getSimpleName(), "onChanged " + integer);
+                if (integer == null){
+                    throw new NullPointerException();
+                }
+                else if (integer == 3) {
                     Util.TICKERLIST_DOWNLOAD_COUNT.setValue(0);
                     writeTickerFile();
-                    context.unregisterReceiver(broadcastReceiver);
+                    try {
+                        context.unregisterReceiver(tickerBroadcastReceiver);
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
@@ -109,6 +118,11 @@ public class TickerGettter {
                 tickers.append((char) content);
             }
             tickerList = Arrays.asList(tickers.toString().split(","));
+
+            if(tickerList.get(tickerList.size()-1) == null){
+                tickerList.remove(tickerList.size()-1);
+            }
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -119,49 +133,27 @@ public class TickerGettter {
 
 
     private void writeTickerFile() {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (String exchange : exchangeList) {
-            stringBuilder.append(readRawCsvToFormattedString(exchange));
-        }
+        Log.d("writeTicker", tickerStringBuilder.toString().substring(0, 200));
+        PrintWriter printWriter = null;
         try {
-            PrintWriter printWriter = new PrintWriter(tickerListFileName);
-            printWriter.println(stringBuilder.toString());
-            printWriter.close();
+            printWriter = new PrintWriter(tickerListFileName);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-    }
-
-    private String readRawCsvToFormattedString(String exchange) {
-        FileInputStream fileIn = null;
-        try {
-            String filePath = Util.FILE_DIR + exchange + ".csv";
-            fileIn = new FileInputStream(filePath);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fileIn));
-
-            StringBuilder stringBuilder = new StringBuilder();
-            String line;
-            boolean firstlLine = true;
-            while ((line = bufferedReader.readLine()) != null) {
-                if(firstlLine){
-                    firstlLine = false;
-                    continue;
-                }
-                String[] tickerInfo = line.split("\",\"");
-                stringBuilder.append(tickerInfo[0].substring(1) + "°" + tickerInfo[1]);
-                stringBuilder.append(",");
-            }
-
-            new File(filePath).delete();
-
-            return stringBuilder.toString();
+        if (printWriter != null) {
+            printWriter.println(tickerStringBuilder.toString());
         }
-        catch (FileNotFoundException e) {
-            e.printStackTrace();
+        printWriter.close();
+
+        File folder = new File(Util.FILE_DIR);
+        File[] listOfFiles = folder.listFiles();
+        for (File file: listOfFiles){
+            Log.d("files", file.getPath());
         }
-        catch (IOException e){
-            e.printStackTrace();
+
+        for (Long id: idList){
+            downloadManager.remove(id);
         }
-        return "";
+
     }
 }

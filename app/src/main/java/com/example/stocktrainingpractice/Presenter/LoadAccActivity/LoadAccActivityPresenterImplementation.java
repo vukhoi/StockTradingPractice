@@ -3,6 +3,7 @@ package com.example.stocktrainingpractice.Presenter.LoadAccActivity;
 import android.content.Context;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 
 import com.example.stocktrainingpractice.Model.Account.Account;
 import com.example.stocktrainingpractice.Model.Account.AccountManager;

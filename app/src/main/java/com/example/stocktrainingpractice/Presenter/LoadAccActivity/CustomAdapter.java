@@ -27,7 +27,6 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
 
 
     public CustomAdapter(Context context, List<Account> accountList){
-        Log.d("accListSize", accountList.size() + "");
         this.context = context;
         this.accountList = accountList;
     }
@@ -58,6 +57,7 @@ public class CustomAdapter extends RecyclerView.Adapter<CustomAdapter.CustomView
             public void onClick(View v) {
                 Intent intent = new Intent(context, PortfolioActivity.class);
                 intent.putExtra(Util.ACC_SERIALIZABLE_KEY, currentAccount);
+                context.startActivity(intent);
             }
         });
     }

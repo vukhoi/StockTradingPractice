@@ -10,6 +10,7 @@ import com.example.stocktrainingpractice.R;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import butterknife.Unbinder;
 
 public class LoadAccActivity extends AppCompatActivity {
@@ -27,6 +28,7 @@ public class LoadAccActivity extends AppCompatActivity {
 
         loadAccActivityPresenter.setUpRecyclerView(recyclerView);
     }
+
 
     @Override
     protected void onDestroy() {
